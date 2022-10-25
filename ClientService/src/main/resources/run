@@ -1,0 +1,1 @@
+dapr run --app-id client-service --app-protocol http --dapr-http-port 3500 -- java -jar target/ClientService-1.0-SNAPSHOT.jar

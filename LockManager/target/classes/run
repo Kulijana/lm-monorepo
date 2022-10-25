@@ -1,0 +1,1 @@
+dapr run --app-id lock-manager --app-port 9001 --app-protocol http --dapr-http-port 3501 -- java -jar target/LockManager-1.0-SNAPSHOT.jar

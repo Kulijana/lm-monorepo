@@ -1,0 +1,3 @@
+common\LockResponse.class
+common\LockRequest.class
+common\LockType.class
