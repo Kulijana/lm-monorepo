@@ -1,9 +1,16 @@
 package common.dto.store;
 
-public class StoreResponse {
-    public boolean allowed;
 
-    public StoreResponse(boolean allowed){
-        this.allowed = allowed;
-    }
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class StoreResponse {
+    private boolean allowed;
+    private int amount;
 }

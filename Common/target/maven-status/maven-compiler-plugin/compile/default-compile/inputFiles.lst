@@ -1,3 +1,7 @@
-C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\LockType.java
-C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\LockRequest.java
-C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\LockResponse.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\dto\LockResponse.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\function\LockMessenger.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\dto\store\StoreRequest.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\dto\LockRequest.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\dto\LockType.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\dto\store\StoreResponse.java
+C:\Users\aleks\Documents\university\master\lm-monorepo\Common\src\main\java\common\function\StoreMessenger.java

@@ -5,6 +5,7 @@ import common.dto.store.StoreRequest;
 import common.dto.store.StoreResponse;
 import common.function.LockMessenger;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,13 +23,29 @@ public class StoreController {
     public StoreResponse buy(@RequestBody StoreRequest request){
         try {
             if(messenger.requestLock(storageDBID, request.TID, LockType.WRITE)){
+                Thread.sleep(request.timeToProcess);
                 this.storage -= request.amount;
-                return new StoreResponse(true);
+                return new StoreResponse(true, this.storage);
             }else{
-                return new StoreResponse(false);
+                return new StoreResponse(false, -1);
             }
         } catch (Exception e) {
-            return new StoreResponse(false);
+            return new StoreResponse(false, -1);
+        }
+    }
+
+    @PostMapping(path = "/status", consumes = MediaType.ALL_VALUE)
+    public StoreResponse status(@RequestBody StoreRequest request){
+        try {
+            if(messenger.requestLock(storageDBID, request.TID, LockType.READ)){
+                Thread.sleep(request.timeToProcess);
+                this.storage -= request.amount;
+                return new StoreResponse(true, this.storage);
+            }else{
+                return new StoreResponse(false, -1);
+            }
+        } catch (Exception e) {
+            return new StoreResponse(false, -1);
         }
     }
 
