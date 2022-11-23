@@ -20,14 +20,23 @@ public class LockMessenger {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    private final String DAPR_HTTP_PORT = System.getenv().getOrDefault("DAPR_HTTP_PORT", "3500");
-    private final String dapr_url_lock = "http://localhost:" + DAPR_HTTP_PORT + "/locks";
-    private final String dapr_url_unlock = "http://localhost:" + DAPR_HTTP_PORT + "/unlocks";
+    private final String url_lock = "http://localhost:" + "9001" + "/locks";
+    private final String url_unlock = "http://localhost:" + "9001" + "/unlocks";
 
     private ObjectMapper mapper;
 
     public LockMessenger(){
         mapper = new ObjectMapper();
+    }
+
+    public boolean multipleAttemptLock(String DBID, String TID, LockType lock, int attempts, int timeout) throws IOException, InterruptedException {
+        boolean acquiredLock = requestLock(DBID, TID, lock);
+        while (attempts > 0 && !acquiredLock){
+            attempts--;
+            Thread.sleep(timeout);
+            acquiredLock = requestLock(DBID, TID, lock);
+        }
+        return acquiredLock;
     }
 
     public boolean requestLock(String DBID, String TID, LockType lock) throws IOException, InterruptedException {
@@ -43,7 +52,7 @@ public class LockMessenger {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
-                .uri(URI.create(dapr_url_lock))
+                .uri(URI.create(url_lock))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "lock-manager")
                 .build();
@@ -60,7 +69,7 @@ public class LockMessenger {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
-                .uri(URI.create(dapr_url_unlock))
+                .uri(URI.create(url_unlock))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "lock-manager")
                 .build();

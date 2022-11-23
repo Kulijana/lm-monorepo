@@ -16,21 +16,36 @@ public class ClientService {
 
     private StoreMessenger storeMessenger;
 
+    private int balance;
+
+    private String clientDBID;
+
     //            TODO here should go a call to store service, its just simulation for now
-    public void getStorage(String DBID, String TID, int timeToProcess) throws IOException, InterruptedException {
-        if(lockMessenger.requestLock(DBID, TID, LockType.READ)){
-            System.out.println("Store storage amount: " + storeMessenger.requestStatus(TID, timeToProcess));
+//    TODO return a Maybe<int> depending on the store response
+//    TODO lock not needed?
+    public int getStorage(String DBID, String TID, int timeToProcess) throws IOException, InterruptedException {
+        if(lockMessenger.multipleAttemptLock(DBID, TID, LockType.READ, 3, 1000)){
+            return storeMessenger.requestStatus(TID, timeToProcess);
         }
         else{
-            System.out.println("Status not read for DBID: " + DBID);
+            return -1;
         }
     }
 
-    public void buyFromStore(String DBID, String TID, int timeToProcess) throws IOException, InterruptedException {
-        if(lockMessenger.requestLock(DBID, TID, LockType.WRITE)){
-            System.out.println("Store purchase response: " + storeMessenger.requestBuy(TID, timeToProcess));
+    public int getBalance(String TID) throws IOException, InterruptedException {
+        if(lockMessenger.multipleAttemptLock(this.clientDBID, TID, LockType.READ, 3, 1000)){
+            return balance;
+        }
+        else{
+            return -1;
+        }
+    }
+
+    public boolean buyFromStore(String TID, int timeToProcess) throws IOException, InterruptedException {
+        if(lockMessenger.multipleAttemptLock(this.clientDBID, TID, LockType.WRITE, 3, 1000)){
+            return storeMessenger.requestBuy(TID, timeToProcess);
         }else{
-            System.out.println("Failed write for DBID: " + DBID);
+            return false;
         }
     }
 
@@ -49,21 +64,28 @@ public class ClientService {
         storeMessenger = new StoreMessenger();
     }
 
+    public ClientService(String clientDBID, int balance){
+        lockMessenger = new LockMessenger();
+        storeMessenger = new StoreMessenger();
+        this.clientDBID = clientDBID;
+        this.balance = balance;
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
         ClientService service = new ClientService();
         service.case1();
     }
 
     public void case1(){
-        System.out.println("Customer checking amount and buying something");
+        System.out.println("Case 1: Customer checking amount and buying something");
         Thread customer1 = new Thread(() -> {
             try {
             String TID = "case1";
             String DBID = "customer1";
             getStorage(DBID, TID, 500);
-            endTransaction(TID);
-//            buyFromStore(DBID, TID, 2000);
 //            endTransaction(TID);
+            buyFromStore(TID, 2000);
+            endTransaction(TID);
 
             } catch (Exception e) {
                 e.printStackTrace();

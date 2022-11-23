@@ -1,5 +1,5 @@
 package common.dto;
 
 public enum LockType {
-    READ, WRITE, UNLOCKED
+    READ, WRITE, UNLOCK
 }

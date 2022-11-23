@@ -14,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import io.reactivex.rxjava3.core.*;
 
 public class StoreMessenger {
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -21,11 +22,10 @@ public class StoreMessenger {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    private final String DAPR_HTTP_PORT = System.getenv().getOrDefault("DAPR_HTTP_PORT", "3502");
 
-    private final String dapr_url_buy = "http://localhost:" + DAPR_HTTP_PORT + "/buy";
+    private final String url_buy = "http://localhost:" + "9002" + "/buy";
 
-    private final String dapr_url_status = "http://localhost:" + DAPR_HTTP_PORT + "/status";
+    private final String url_status = "http://localhost:" + "9002" + "/status";
     private ObjectMapper mapper;
 
     public StoreMessenger(){
@@ -36,7 +36,6 @@ public class StoreMessenger {
         StoreRequest storeRequest = new StoreRequest();
         storeRequest.TID = TID;
         storeRequest.amount = 1;
-        storeRequest.customerId = "TODO";
         storeRequest.timeToProcess = timeToProcess;
 
 
@@ -47,7 +46,7 @@ public class StoreMessenger {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
-                .uri(URI.create(dapr_url_buy))
+                .uri(URI.create(url_buy))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "store-service")
                 .build();
@@ -58,7 +57,7 @@ public class StoreMessenger {
         return storeResponse.isAllowed();
     }
 
-    public int requestStatus(String TID, int timeToProcess) throws IOException, InterruptedException {
+    public Maybe<Integer> requestStatus(String TID, int timeToProcess) throws IOException, InterruptedException {
         StoreRequest storeRequest = new StoreRequest();
         storeRequest.TID = TID;
         storeRequest.amount = 0;
@@ -73,13 +72,12 @@ public class StoreMessenger {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
-                .uri(URI.create(dapr_url_status))
+                .uri(URI.create(url_status))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "store-service")
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println("This is the string being sent back to us: " + response.body());
         StoreResponse storeResponse = mapper.readValue(response.body(), StoreResponse.class);
         return storeResponse.getAmount();
     }
