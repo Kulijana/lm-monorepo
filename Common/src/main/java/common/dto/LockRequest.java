@@ -1,15 +1,16 @@
 package common.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class LockRequest {
-    public String TID;
-    public String DBID;
-    public LockType type;
-
-    public LockRequest(){ }
-
-    public LockRequest(String TID, String DBID, LockType type){
-        this.TID = TID;
-        this.DBID = DBID;
-        this.type = type;
-    }
+    private String tid;
+    private String dbid;
+    private LockType type;
 }

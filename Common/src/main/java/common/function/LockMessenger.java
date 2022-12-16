@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import common.dto.LockRequest;
 import common.dto.LockResponse;
 import common.dto.LockType;
+import io.reactivex.rxjava3.core.Maybe;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -29,35 +30,34 @@ public class LockMessenger {
         mapper = new ObjectMapper();
     }
 
-    public boolean multipleAttemptLock(String DBID, String TID, LockType lock, int attempts, int timeout) throws IOException, InterruptedException {
-        boolean acquiredLock = requestLock(DBID, TID, lock);
-        while (attempts > 0 && !acquiredLock){
-            attempts--;
-            Thread.sleep(timeout);
-            acquiredLock = requestLock(DBID, TID, lock);
+    public Maybe<Boolean> multipleAttemptLock(LockRequest request, int attempts, int timeout){
+        try {
+            boolean acquiredLock = requestLock(request);
+            while (attempts > 0 && !acquiredLock) {
+                attempts--;
+                Thread.sleep(timeout);
+                acquiredLock = requestLock(request);
+            }
+            return Maybe.just(acquiredLock);
+        }catch(Exception ex){
+            return Maybe.error(ex);
         }
-        return acquiredLock;
     }
 
-    public boolean requestLock(String DBID, String TID, LockType lock) throws IOException, InterruptedException {
-        LockRequest lockRequest = new LockRequest();
-        lockRequest.DBID = DBID;
-        lockRequest.type = lock;
-        lockRequest.TID = TID;
+    public boolean requestLock(LockRequest request) throws IOException, InterruptedException {
 
-        JSONObject obj = new JSONObject();
-        obj.put("DBID", lockRequest.DBID);
-        obj.put("TID", lockRequest.TID);
-        obj.put("type", lockRequest.type);
+        JSONObject obj = new JSONObject(request);
+        System.out.println("this is json object possible error lockmessenger edition");
+        System.out.println(obj);
 
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
                 .uri(URI.create(url_lock))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "lock-manager")
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
         LockResponse lockResponse = mapper.readValue(response.body(), LockResponse.class);
         return lockResponse.allowed;
     }
@@ -65,7 +65,7 @@ public class LockMessenger {
     public void unlock(String TID) throws IOException, InterruptedException {
 
         JSONObject obj = new JSONObject();
-        obj.put("TID", TID);
+        obj.put("tid", TID);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
