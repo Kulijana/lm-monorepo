@@ -7,4 +7,6 @@ public interface ClientService {
     Maybe<Integer> getProductStorage(StoreRequest request);
 
     Maybe<Boolean> buyFromStore(StoreRequest request);
+
+    Maybe<Integer> getBalance();
 }

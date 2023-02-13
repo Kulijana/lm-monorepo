@@ -98,14 +98,14 @@ public class DistributedClientService implements ClientService{
 
     public DistributedClientService(){
         lockMessenger = new LockMessenger();
-        storeMessenger = new StoreMessenger();
+        storeMessenger = new StoreMessenger("distributed");
         transactionActive = false;
     }
 
     public DistributedClientService(CustomerRepository customerRepository, String clientDBID, int balance){
         this.customerRepository = customerRepository;
         lockMessenger = new LockMessenger();
-        storeMessenger = new StoreMessenger();
+        storeMessenger = new StoreMessenger("distributed");
         this.clientDBID = clientDBID;
         this.balance = balance;
         transactionActive = false;
@@ -118,7 +118,12 @@ public class DistributedClientService implements ClientService{
     }
 
     public void jpaExample(){
-        System.out.println(customerRepository.findAll());
+        customerRepository.findAll().forEach(x -> {
+            System.out.println(x.getIdcustomer());
+                    System.out.println(x.getBalance());
+                    System.out.println(x.getSpent());
+        }
+        );
     }
 
     public void case1() throws InterruptedException {

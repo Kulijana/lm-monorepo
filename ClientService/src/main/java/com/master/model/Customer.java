@@ -12,11 +12,11 @@ import javax.persistence.*;
 @Getter
 @Setter
 @Entity
-@Table(name= "message")
+@Table(name= "customer")
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long idCustomer;
+    private long idcustomer;
     private int balance;
     private int spent;
 }
