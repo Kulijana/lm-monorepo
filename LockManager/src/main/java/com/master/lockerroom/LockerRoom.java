@@ -6,7 +6,7 @@ import common.dto.LockType;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class LockerRoom {
+public class LockerRoom implements LockManager{
 //    first parameter is DBID
     private HashMap<String, Lock> locks;
 //    first parameter is TID, second is list of DBIDs
@@ -23,11 +23,11 @@ public class LockerRoom {
             return true;
         }
         Lock currentLock = locks.get(request.getDbid());
-        if (currentLock.type == LockType.READ && request.getType() == LockType.READ) {
+        if (currentLock.type == LockType.SHARED && request.getType() == LockType.SHARED) {
             return true;
 //            checking for upgradeability
 //            TODO fix code repetition that occurs in locking compared to this part
-        } else if(currentLock.type == LockType.READ && request.getType() == LockType.WRITE){
+        } else if(currentLock.type == LockType.SHARED && request.getType() == LockType.EXCLUSIVE){
             ReadLock readLock = (ReadLock) currentLock;
             if(readLock.TIDs.size() == 1 && readLock.TIDs.get(0).equals(request.getTid()))
                 return true;
@@ -47,7 +47,7 @@ public class LockerRoom {
         boolean lockable = lockable(request);
         if(lockable){
             if(!locks.containsKey(request.getDbid())){
-                if(request.getType() == LockType.READ){
+                if(request.getType() == LockType.SHARED){
                     ReadLock lock= new ReadLock(request.getTid());
                     locks.put(request.getDbid(), lock);
                     addToT2DBMap(request);
@@ -58,14 +58,14 @@ public class LockerRoom {
                 }
             }else{
                 Lock currentLock = locks.get(request.getDbid());
-                if(currentLock.type == LockType.READ && request.getType() == LockType.READ){
+                if(currentLock.type == LockType.SHARED && request.getType() == LockType.SHARED){
                     ReadLock readLock = (ReadLock) currentLock;
                     readLock.TIDs.add(request.getTid());
                     addToT2DBMap(request);
 //                    Following part is about lock upgrades, developer needs to take care
 //                    As his code needs to be responsible for knowing about the upgrade, for now
 //                    no adding to T2DBMap because the item is already related to the transaction
-                }else if(currentLock.type == LockType.READ && request.getType() == LockType.WRITE){
+                }else if(currentLock.type == LockType.SHARED && request.getType() == LockType.EXCLUSIVE){
                     ReadLock readLock = (ReadLock) currentLock;
                     if(readLock.TIDs.size() == 1 && readLock.TIDs.get(0) == request.getTid()){
                         locks.replace(request.getDbid(), currentLock, new WriteLock(request.getTid()));
@@ -82,7 +82,7 @@ public class LockerRoom {
             ArrayList<String> transactionLocks = T2DBMap.get(request.getTid());
             for (String DBID : transactionLocks) {
                 Lock currentLock = locks.get(DBID);
-                if (currentLock.type == LockType.WRITE) {
+                if (currentLock.type == LockType.EXCLUSIVE) {
                     locks.remove(DBID);
                 } else {
                     ReadLock readLock = (ReadLock) currentLock;

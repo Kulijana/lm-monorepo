@@ -1,6 +1,8 @@
 package com.master.controller;
 
 
+import com.master.lockerroom.GranularityTree;
+import com.master.lockerroom.LockManager;
 import com.master.lockerroom.LockerRoom;
 import common.dto.LockRequest;
 import common.dto.LockResponse;
@@ -13,7 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class LockController {
 
 //    TODO make it synchronous
-    LockerRoom lockerRoom = new LockerRoom();
+//    LockManager lockManager = new LockerRoom();
+    LockManager lockManager = new GranularityTree();
     @PostMapping(path = "/locks", consumes = MediaType.ALL_VALUE)
     public LockResponse lock(@RequestBody LockRequest request) {
         System.out.println("Lock request received:");
@@ -21,7 +24,7 @@ public class LockController {
         System.out.println("DBID: " + request.getDbid());
         System.out.println("Request type: " + request.getType().toString());
         LockResponse response = new LockResponse();
-        response.allowed = lockerRoom.lock(request);
+        response.allowed = lockManager.lock(request);
         System.out.println("Response: " + response.allowed);
         return response;
     }
@@ -32,7 +35,7 @@ public class LockController {
         System.out.println("TID: " + request.getTid());
         System.out.println("DBID: " + request.getDbid());
         LockResponse response = new LockResponse();
-        var res = lockerRoom.unlock(request);
+        var res = lockManager.unlock(request);
         System.out.println("Response: " + res);
         response.allowed = res;
         return response;

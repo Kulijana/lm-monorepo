@@ -17,8 +17,8 @@ public class LockManagerSpecialTest {
 
     @Test
     void upgradeLockTest(){
-        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.READ);
-        LockRequest lockRequest2 = new LockRequest("TID", "DBID", LockType.WRITE);
+        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.SHARED);
+        LockRequest lockRequest2 = new LockRequest("TID", "DBID", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(lockRequest).allowed);
         assertTrue(lockController.lock(lockRequest2).allowed);
@@ -27,8 +27,8 @@ public class LockManagerSpecialTest {
 
     @Test
     void deadLockPreventionTest(){
-        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.READ);
-        LockRequest lockRequest2 = new LockRequest("TID2", "DBID2", LockType.WRITE);
+        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.SHARED);
+        LockRequest lockRequest2 = new LockRequest("TID2", "DBID2", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         lockController.lock(lockRequest);
         lockController.lock(lockRequest2);

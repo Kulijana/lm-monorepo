@@ -51,7 +51,7 @@ public class DistributedClientService implements ClientService{
             LockRequest request = new LockRequest();
             request.setDbid(clientDBID);
             request.setTid(tid);
-            request.setType(LockType.READ);
+            request.setType(LockType.SHARED);
             if (lockMessenger.multipleAttemptLock(request, 3, 1000).blockingGet(false)) {
                 return Maybe.just(balance);
             } else {
@@ -65,7 +65,7 @@ public class DistributedClientService implements ClientService{
 
     public Maybe<Boolean> buyFromStore(StoreRequest storeRequest){
         try {
-            LockRequest request = new LockRequest(tid, clientDBID, LockType.WRITE);
+            LockRequest request = new LockRequest(tid, clientDBID, LockType.EXCLUSIVE);
             if (lockMessenger.multipleAttemptLock(request, 3, 1000).blockingGet(false)) {
                 storeRequest.setTid(this.tid);
                 return storeMessenger.requestBuy(storeRequest);

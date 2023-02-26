@@ -22,7 +22,7 @@ public class StoreController {
     @PostMapping(path = "/buy", consumes = MediaType.ALL_VALUE)
     public StoreResponse buy(@RequestBody StoreRequest request){
         try {
-            LockRequest lockRequest = new LockRequest(request.getTid(), storageDBID, LockType.WRITE);
+            LockRequest lockRequest = new LockRequest(request.getTid(), storageDBID, LockType.EXCLUSIVE);
             if(messenger.multipleAttemptLock(lockRequest, 3, 1000).blockingGet(false)){
                 Thread.sleep(request.getTimeToProcess());
                 this.storage -= request.getAmount();
@@ -38,7 +38,7 @@ public class StoreController {
     @PostMapping(path = "/status", consumes = MediaType.ALL_VALUE)
     public StoreResponse status(@RequestBody StoreRequest request){
         try {
-            LockRequest lockRequest = new LockRequest(request.getTid(), storageDBID, LockType.READ);
+            LockRequest lockRequest = new LockRequest(request.getTid(), storageDBID, LockType.SHARED);
             if(messenger.multipleAttemptLock(lockRequest, 3, 1000).blockingGet(false)){
                 Thread.sleep(request.getTimeToProcess());
                 this.storage -= request.getAmount();

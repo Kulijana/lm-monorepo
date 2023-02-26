@@ -16,7 +16,7 @@ public class LockManagerBasicTest {
 
     @Test
     void singleReadLockTest(){
-        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.READ);
+        LockRequest lockRequest = new LockRequest("TID", "DBID", LockType.SHARED);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(lockRequest).allowed);
         assertTrue(lockController.unlock(unlockRequest).allowed);
@@ -24,7 +24,7 @@ public class LockManagerBasicTest {
 
     @Test
     void singleWriteLockTest(){
-        LockRequest request = new LockRequest("TID", "DBID", LockType.WRITE);
+        LockRequest request = new LockRequest("TID", "DBID", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(request).allowed);
         assertTrue(lockController.unlock(unlockRequest).allowed);
@@ -32,8 +32,8 @@ public class LockManagerBasicTest {
 
     @Test
     void multipleReadLocksTest(){
-        LockRequest request = new LockRequest("TID", "DBID", LockType.READ);
-        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.READ);
+        LockRequest request = new LockRequest("TID", "DBID", LockType.SHARED);
+        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.SHARED);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         LockRequest unlockRequest2 = new LockRequest("TID2", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(request).allowed);
@@ -44,20 +44,20 @@ public class LockManagerBasicTest {
 
     @Test
     void multipleWriteLockTest(){
-        LockRequest request = new LockRequest("TID", "DBID", LockType.WRITE);
-        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.WRITE);
+        LockRequest request = new LockRequest("TID", "DBID", LockType.EXCLUSIVE);
+        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         LockRequest unlockRequest2 = new LockRequest("TID2", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(request).allowed);
         assertFalse(lockController.lock(request2).allowed);
         assertTrue(lockController.unlock(unlockRequest).allowed);
-        assertTrue(lockController.unlock(unlockRequest2).allowed);
+        assertFalse(lockController.unlock(unlockRequest2).allowed);
     }
 
     @Test
     void readWriteLockTest(){
-        LockRequest request = new LockRequest("TID", "DBID", LockType.READ);
-        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.WRITE);
+        LockRequest request = new LockRequest("TID", "DBID", LockType.SHARED);
+        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         LockRequest unlockRequest2 = new LockRequest("TID2", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(request).allowed);
@@ -68,14 +68,14 @@ public class LockManagerBasicTest {
 
     @Test
     void WriteReadLockTest(){
-        LockRequest request = new LockRequest("TID", "DBID", LockType.READ);
-        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.WRITE);
+        LockRequest request = new LockRequest("TID", "DBID", LockType.SHARED);
+        LockRequest request2 = new LockRequest("TID2", "DBID", LockType.EXCLUSIVE);
         LockRequest unlockRequest = new LockRequest("TID", "DBID", LockType.UNLOCK);
         LockRequest unlockRequest2 = new LockRequest("TID2", "DBID", LockType.UNLOCK);
         assertTrue(lockController.lock(request).allowed);
         assertFalse(lockController.lock(request2).allowed);
         assertTrue(lockController.unlock(unlockRequest).allowed);
-        assertTrue(lockController.unlock(unlockRequest2).allowed);
+        assertFalse(lockController.unlock(unlockRequest2).allowed);
     }
 
 }
