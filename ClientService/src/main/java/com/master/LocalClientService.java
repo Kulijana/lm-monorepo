@@ -43,12 +43,12 @@ public class LocalClientService implements ClientService{
             var product = storeRepository.findById(productId).get();
             var amountToBuy = request.getAmount();
             var amountInStore = product.getAmount();
-            var price = product.getPrice();
+            var price = product.getIncome();
             int balance = customer.getBalance();
             if (balance >= price * amountToBuy && amountToBuy <= amountInStore) {
                 product.setAmount(amountInStore - amountToBuy);
                 customer.setBalance(balance - price * amountToBuy);
-                customer.setSpent(customer.getSpent() + price * amountToBuy);
+                customer.setInventory(customer.getInventory() + price * amountToBuy);
                 customerRepository.save(customer);
                 storeRepository.save(product);
                 return Maybe.just(true);

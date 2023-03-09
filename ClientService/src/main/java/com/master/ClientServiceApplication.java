@@ -1,14 +1,19 @@
 package com.master;
 
+import com.master.model.Customer;
 import com.master.repository.CustomerRepository;
 import com.master.repository.StoreRepository;
 import common.dto.store.StoreRequest;
+import common.function.StoreMessenger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 @SpringBootApplication
 public class ClientServiceApplication
@@ -18,6 +23,8 @@ public class ClientServiceApplication
     CustomerRepository customerRepository;
 //    private static Logger LOG = LoggerFactory
 //            .getLogger(ClientServiceApplication.class);
+
+//    won't be needed
     @Autowired
     StoreRepository storeRepository;
 
@@ -30,23 +37,42 @@ public class ClientServiceApplication
     @Override
     public void run(String... args) throws InterruptedException {
 //        LOG.info("EXECUTING : command line runner");
-        LocalClientService service = new LocalClientService(1, customerRepository, storeRepository);
-        var balance = service.getBalance().blockingGet();
-        System.out.println(balance);
-        StoreRequest request = new StoreRequest();
-        request.setCustomerId("1");
-        request.setAmount(3);
-        request.setProductId("1");
-        var result = service.buyFromStore(request).blockingGet();
-        System.out.println("buy was sucess?: " + result);
-        var balance2 = service.getBalance().blockingGet();
-        System.out.println("new balance: "+ balance2);
+        buildScenario(20, 10);
+        StoreMessenger storeMessenger = new StoreMessenger("distributed");
+        storeMessenger.createScenario(10, 10);
 
+        DistributedClientService service1 = new DistributedClientService(customerRepository, 1L);
+        DistributedClientService service2 = new DistributedClientService(customerRepository, 2L);
+        DistributedClientService service3 = new DistributedClientService(customerRepository, 3L);
 
-//        DistributedClientService service = new DistributedClientService(repository,"client1", 200);
-////        service.jpaExample();
-//        service.case1();
+        ArrayList<String> productsToBuy = new ArrayList<>(Arrays.asList("1", "2" , "3",  "4"));
+        ArrayList<Integer> amountToBuy = new ArrayList<>(Arrays.asList(2, 2 , 2,  2));
 
+        Thread thread1 = service1.buyThread(productsToBuy, amountToBuy, 100);
+        Thread thread2 = service2.buyThread(productsToBuy, amountToBuy, 100);
+        Thread thread3 = service3.buyThread(productsToBuy, amountToBuy, 100);
+
+        thread1.start();
+        thread1.join();
+
+//        thread2.start();
+//        thread2.join();
+//
+//        thread3.start();
+//        thread3.join();
+
+    }
+
+    private void buildScenario(int customerCount, int customerBalance){
+        customerRepository.truncateCustomers();
+        ArrayList<Customer> customers = new ArrayList<>();
+        for(int i=0;i<customerCount;i++){
+            Customer customer = new Customer();
+            customer.setInventory(0);
+            customer.setBalance(customerBalance);
+            customers.add(customer);
+        }
+        customerRepository.saveAll(customers);
     }
 
 }

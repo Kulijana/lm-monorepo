@@ -40,18 +40,25 @@ public class GranularityTree implements LockManager {
     private LockType lockRecursive(GranularityNode node, LockRequest request, String[] levels, int levelIndex) {
 //        end of recursion
         if (levelIndex == levels.length) {
-            var newLock = node.newLockResult(request.getType());
-            if (newLock != LockType.INVALID) {
-                String tid = request.getTid();
-                node.setLock(tid, newLock);
-                var tidLeafs = tid2LeafNodes.get(tid);
-                if (tidLeafs == null) {
-                    tid2LeafNodes.put(tid, new ArrayList<>(Arrays.asList(node)));
-                } else {
-                    tidLeafs.add(node);
+
+//            used for ugrading shared to exclusive locks when there is no one else holding the lock
+            if(node.isUpgradeable(request)){
+                node.upgrade(request.getTid());
+                return LockType.EXCLUSIVE;
+            }else {
+                var newLock = node.newLockResult(request.getType());
+                if (newLock != LockType.INVALID) {
+                    String tid = request.getTid();
+                    node.setLock(tid, newLock);
+                    var tidLeafs = tid2LeafNodes.get(tid);
+                    if (tidLeafs == null) {
+                        tid2LeafNodes.put(tid, new ArrayList<>(Arrays.asList(node)));
+                    } else {
+                        tidLeafs.add(node);
+                    }
                 }
+                return newLock;
             }
-            return newLock;
         }
 //        below code executes when not at the end of recursion
         LockType requestedLock = request.getType() == LockType.EXCLUSIVE ? LockType.INTENT_EXCLUSIVE : LockType.INTENT_SHARED;
@@ -84,6 +91,7 @@ public class GranularityTree implements LockManager {
         for (var leaf : leafs){
             leaf.removeLock(tid);
         }
+        tid2LeafNodes.remove(tid);
         return true;
     }
 
@@ -111,6 +119,18 @@ public class GranularityTree implements LockManager {
         public void setLock(String tid, LockType type){
             currentLockType = type;
             tid2LockType.put(tid, type);
+        }
+
+        public boolean isUpgradeable(LockRequest request){
+            return tid2LockType.size()==1 &&
+                    tid2LockType.get(request.getTid())==LockType.SHARED &&
+                    request.getType() == LockType.EXCLUSIVE;
+        }
+
+        public void upgrade(String tid){
+            currentLockType = LockType.EXCLUSIVE;
+            tid2LockType.remove(tid);
+            tid2LockType.put(tid, LockType.EXCLUSIVE);
         }
 
 

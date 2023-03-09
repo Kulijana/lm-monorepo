@@ -47,8 +47,7 @@ public class LockMessenger {
     public boolean requestLock(LockRequest request) throws IOException, InterruptedException {
 
         JSONObject obj = new JSONObject(request);
-        System.out.println("this is json object possible error lockmessenger edition");
-        System.out.println(obj);
+        System.out.println("Request to LM: " + obj);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))

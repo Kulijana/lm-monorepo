@@ -1,5 +1,6 @@
 package com.master;
 
+import com.master.model.Customer;
 import com.master.repository.CustomerRepository;
 import common.dto.LockRequest;
 import common.dto.LockType;
@@ -13,66 +14,90 @@ import org.springframework.stereotype.Service;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
 public class DistributedClientService implements ClientService{
 
+    // TODO: 09/03/2023 add creation of new client?
 
     CustomerRepository customerRepository;
 
     private LockMessenger lockMessenger;
-
     private StoreMessenger storeMessenger;
-
-    private int balance;
-
-    private String clientDBID;
-
-    private int productAmount;
-
+    private final String clientDBID = "client/lm_serialized/customer/";
+    private Long clientId;
     private String tid;
     private boolean transactionActive;
+
+    private ArrayList<StoreRequest> logs;
 
     @Autowired
     public DistributedClientService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
 
-    //    TODO perhaps change it so that we fetch things from a database which contains all the user info, like a bank
-//    TODO basically turn users into more of a bank, useful for adding new users etc
+    public DistributedClientService(){
+        lockMessenger = new LockMessenger();
+        storeMessenger = new StoreMessenger("distributed");
+        transactionActive = false;
+    }
+
+    public DistributedClientService(CustomerRepository customerRepository, Long clientId){
+        this.customerRepository = customerRepository;
+        lockMessenger = new LockMessenger();
+        storeMessenger = new StoreMessenger("distributed");
+        this.clientId = clientId;
+        transactionActive = false;
+    }
+
     public Maybe<Integer> getProductStorage(StoreRequest request){
         return storeMessenger.requestStatus(request);
     }
 
-
     public Maybe<Integer> getBalance(){
         try {
             LockRequest request = new LockRequest();
-            request.setDbid(clientDBID);
+            request.setDbid(getDBID());
             request.setTid(tid);
             request.setType(LockType.SHARED);
             if (lockMessenger.multipleAttemptLock(request, 3, 1000).blockingGet(false)) {
-                return Maybe.just(balance);
+                Customer customer = customerRepository.findById(clientId).get();
+                return Maybe.just(customer.getBalance());
             } else {
+                transactionFail("Client lock timeout");
                 return Maybe.empty();
             }
         }catch (Exception ex){
+            transactionFail(ex.getMessage());
             return Maybe.error(ex);
         }
     }
 
-
     public Maybe<Boolean> buyFromStore(StoreRequest storeRequest){
         try {
-            LockRequest request = new LockRequest(tid, clientDBID, LockType.EXCLUSIVE);
+//            locking our resources preemptively
+            LockRequest request = new LockRequest(tid, getDBID(), LockType.EXCLUSIVE);
             if (lockMessenger.multipleAttemptLock(request, 3, 1000).blockingGet(false)) {
                 storeRequest.setTid(this.tid);
-                return storeMessenger.requestBuy(storeRequest);
+                var storeResponse =  storeMessenger.requestBuy(storeRequest);
+                if(storeResponse.blockingGet()){
+                    var customer = customerRepository.findById(clientId).get();
+                    customer.setBalance(customer.getBalance() - storeRequest.getAmount());
+                    customer.setInventory(customer.getInventory() + storeRequest.getAmount());
+                    customerRepository.save(customer);
+                    logs.add(storeRequest);
+                }else{
+                    transactionFail("Store rejected request");
+                }
+                return storeResponse;
             } else {
+                transactionFail("Client lock timeout");
                 return Maybe.just(false);
             }
         }catch (Exception ex){
+            transactionFail(ex.getMessage());
             return Maybe.error(ex);
         }
     }
@@ -82,13 +107,16 @@ public class DistributedClientService implements ClientService{
             return false;
         }
         this.tid = UUID.randomUUID().toString();
+        this.logs = new ArrayList<>();
         transactionActive = true;
         return true;
     }
     public void endTransaction(){
         try {
-            lockMessenger.unlock(tid);
-            this.transactionActive = false;
+            if(transactionActive) {
+                lockMessenger.unlock(tid);
+                this.transactionActive = false;
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -96,20 +124,31 @@ public class DistributedClientService implements ClientService{
         }
     }
 
-    public DistributedClientService(){
-        lockMessenger = new LockMessenger();
-        storeMessenger = new StoreMessenger("distributed");
-        transactionActive = false;
+    private void transactionFail(String failReason){
+        System.err.println("Transaction failed: " + tid);
+        System.err.println(failReason);
+        rollback();
+        endTransaction();
     }
 
-    public DistributedClientService(CustomerRepository customerRepository, String clientDBID, int balance){
-        this.customerRepository = customerRepository;
-        lockMessenger = new LockMessenger();
-        storeMessenger = new StoreMessenger("distributed");
-        this.clientDBID = clientDBID;
-        this.balance = balance;
-        transactionActive = false;
+    private String getDBID(){
+        return clientDBID + clientId;
     }
+
+    private void rollback(){
+        System.out.println("Rolling back for: " + tid);
+        var customer = customerRepository.findById(clientId).get();
+        for(int i=logs.size()-1; i>=0; i--){
+            var log = logs.get(i);
+            var amount = log.getAmount();
+            customer.setInventory(customer.getInventory() - amount);
+            customer.setBalance(customer.getBalance() + amount);
+            storeMessenger.rollback(log);
+        }
+        customerRepository.save(customer);
+    }
+
+
 
     public static void main(String[] args) throws IOException, InterruptedException {
 //        DistributedClientService service = new DistributedClientService("client1", 200);
@@ -117,14 +156,6 @@ public class DistributedClientService implements ClientService{
 //        service.jpaExample();
     }
 
-    public void jpaExample(){
-        customerRepository.findAll().forEach(x -> {
-            System.out.println(x.getIdcustomer());
-                    System.out.println(x.getBalance());
-                    System.out.println(x.getSpent());
-        }
-        );
-    }
 
     public void case1() throws InterruptedException {
         System.out.println("Case 1: Customer checking amount and buying something");
@@ -137,8 +168,9 @@ public class DistributedClientService implements ClientService{
             if(startTransaction()){
                 StoreRequest storeRequest = new StoreRequest();
                 storeRequest.setTid(tid);
-                storeRequest.setCustomerId("Nonrelevant");
-                storeRequest.setAmount(10);
+                storeRequest.setProductId("1");
+                storeRequest.setCustomerId(clientId.toString());
+                storeRequest.setAmount(1);
                 storeRequest.setTimeToProcess(500);
                 buyFromStore(storeRequest);
                 endTransaction();
@@ -158,5 +190,34 @@ public class DistributedClientService implements ClientService{
         customer1.join();
     }
 
+
+    public Thread buyThread(ArrayList<String> productsToBuy, ArrayList<Integer> amountToBuy, int timeToProcess){
+        System.out.println("Buy single transaction:");
+        System.out.println("ClientId: " + clientId + " products to buy: " + productsToBuy + " amount to buy: " + amountToBuy);
+        Thread thread = new Thread(() -> {
+            try {
+                startTransaction();
+                System.out.println("our balance:" + getBalance().blockingGet());
+
+                for(int i = 0; i < productsToBuy.size(); i++){
+                    StoreRequest storeRequest = new StoreRequest();
+                    storeRequest.setTid(tid);
+                    storeRequest.setProductId(productsToBuy.get(i));
+                    storeRequest.setCustomerId(clientId.toString());
+                    storeRequest.setAmount(amountToBuy.get(i));
+                    storeRequest.setTimeToProcess(timeToProcess);
+                    buyFromStore(storeRequest);
+                }
+                endTransaction();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+
+        });
+        return thread;
+    }
+
 //    TODO allow a transaction to change the read lock to a write lock!
+//    TODO add rollback to stuff
 }

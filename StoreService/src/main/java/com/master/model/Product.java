@@ -16,8 +16,13 @@ import javax.persistence.*;
 @Table(name= "product")
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long idproduct;
-    private int price;
+    private int income;
     private int amount;
+
+    public Product(int income, int amount){
+        this.income = income;
+        this.amount = amount;
+    }
 }

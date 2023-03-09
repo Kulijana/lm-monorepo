@@ -8,12 +8,11 @@ import common.dto.store.StoreResponse;
 import common.function.LockMessenger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("local")
@@ -43,6 +42,24 @@ public class LocalStoreController {
     public StoreResponse status(@RequestBody StoreRequest request){
         Product p = storeRepository.findById(Long.parseLong(request.getProductId())).get();
         return new StoreResponse(true, p.getAmount());
+    }
+
+    @GetMapping(path = "/reset", consumes = MediaType.ALL_VALUE)
+    @Transactional
+    public void reset(){
+        storeRepository.truncateStore();
+    }
+
+    @Transactional
+    @PostMapping(path="/scenario", consumes = MediaType.ALL_VALUE)
+    public boolean createScenario(@RequestParam int productCount, @RequestParam int productAmount){
+        storeRepository.truncateStore();
+        List<Product> products = new ArrayList<>();
+        for(int i=0;i<productCount;i++){
+            products.add(new Product(0, productAmount));
+        }
+        storeRepository.saveAll(products);
+        return true;
     }
 
 }
