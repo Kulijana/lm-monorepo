@@ -42,8 +42,6 @@ public class StoreMessenger {
     public Maybe<Boolean> requestBuy(StoreRequest request){
         try {
             JSONObject obj = new JSONObject(request);
-            System.out.println("This is how a new json object looks, possible error");
-            System.out.println(obj);
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))

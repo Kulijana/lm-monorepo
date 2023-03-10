@@ -19,13 +19,22 @@ public class LockController {
     LockManager lockManager = new GranularityTree();
     @PostMapping(path = "/locks", consumes = MediaType.ALL_VALUE)
     public LockResponse lock(@RequestBody LockRequest request) {
-        System.out.println("Lock request received:");
-        System.out.println("TID: " + request.getTid());
-        System.out.println("DBID: " + request.getDbid());
-        System.out.println("Request type: " + request.getType().toString());
+
         LockResponse response = new LockResponse();
         response.allowed = lockManager.lock(request);
-        System.out.println("Response: " + response.allowed);
+        if (response.allowed) {
+            System.out.println("Lock request received:");
+            System.out.println("TID: " + request.getTid());
+            System.out.println("DBID: " + request.getDbid());
+            System.out.println("Request type: " + request.getType().toString());
+            System.out.println("Response: " + response.allowed);
+        } else {
+            System.err.println("Lock request received:");
+            System.err.println("TID: " + request.getTid());
+            System.err.println("DBID: " + request.getDbid());
+            System.err.println("Request type: " + request.getType().toString());
+            System.err.println("Response: " + response.allowed);
+        }
         return response;
     }
 

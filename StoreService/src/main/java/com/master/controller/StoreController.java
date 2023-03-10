@@ -30,7 +30,7 @@ public class StoreController {
     public StoreResponse buy(@RequestBody StoreRequest request){
         try {
             LockRequest lockRequest = new LockRequest(request.getTid(), getStorageDBID(request.getProductId()), LockType.EXCLUSIVE);
-            if(messenger.multipleAttemptLock(lockRequest, 3, 1000).blockingGet(false)){
+            if(messenger.multipleAttemptLock(lockRequest, 3, 2000).blockingGet(false)){
                 Thread.sleep(request.getTimeToProcess());
 //                this should be fine, no need to check that storage is sufficient
 //                if lm works correctly
@@ -66,6 +66,7 @@ public class StoreController {
 
     @PostMapping(path="/rollback", consumes = MediaType.ALL_VALUE)
     public StoreResponse rollback(@RequestBody StoreRequest request){
+        System.err.println("Rollback for: {" + request.getTid() + ", " + request.getProductId() + "}");
         var product = storeRepository.findById(Long.parseLong(request.getProductId())).get();
         product.setAmount(product.getAmount() + request.getAmount());
         product.setIncome(product.getIncome() - request.getAmount());
@@ -75,7 +76,7 @@ public class StoreController {
 
 
     @PostMapping(path="/scenario", consumes = MediaType.ALL_VALUE)
-    public boolean createScenario(@RequestBody StoreRequest storeRequest){
+    public StoreResponse createScenario(@RequestBody StoreRequest storeRequest){
 //        hacked together
         int productCount = Integer.parseInt(storeRequest.getProductId());
         int productAmount = storeRequest.getAmount();
@@ -85,7 +86,7 @@ public class StoreController {
             products.add(new Product(0, productAmount));
         }
         storeRepository.saveAll(products);
-        return true;
+        return new StoreResponse(true, 0);
     }
 
 

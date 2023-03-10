@@ -31,6 +31,8 @@ public class DistributedClientService implements ClientService{
     private String tid;
     private boolean transactionActive;
 
+    private boolean transactionFailed;
+
     private ArrayList<StoreRequest> logs;
 
     @Autowired
@@ -76,13 +78,17 @@ public class DistributedClientService implements ClientService{
     }
 
     public Maybe<Boolean> buyFromStore(StoreRequest storeRequest){
+        return buyFromStore(storeRequest, 3, 1000);
+    }
+
+    public Maybe<Boolean> buyFromStore(StoreRequest storeRequest, int lockAttempts, int lockTimeout){
         try {
 //            locking our resources preemptively
             LockRequest request = new LockRequest(tid, getDBID(), LockType.EXCLUSIVE);
-            if (lockMessenger.multipleAttemptLock(request, 3, 1000).blockingGet(false)) {
+            if (lockMessenger.multipleAttemptLock(request, lockAttempts, lockTimeout).blockingGet(false)) {
                 storeRequest.setTid(this.tid);
-                var storeResponse =  storeMessenger.requestBuy(storeRequest);
-                if(storeResponse.blockingGet()){
+                var storeResponse =  storeMessenger.requestBuy(storeRequest).blockingGet();
+                if(storeResponse){
                     var customer = customerRepository.findById(clientId).get();
                     customer.setBalance(customer.getBalance() - storeRequest.getAmount());
                     customer.setInventory(customer.getInventory() + storeRequest.getAmount());
@@ -91,7 +97,7 @@ public class DistributedClientService implements ClientService{
                 }else{
                     transactionFail("Store rejected request");
                 }
-                return storeResponse;
+                return Maybe.just(storeResponse);
             } else {
                 transactionFail("Client lock timeout");
                 return Maybe.just(false);
@@ -109,6 +115,7 @@ public class DistributedClientService implements ClientService{
         this.tid = UUID.randomUUID().toString();
         this.logs = new ArrayList<>();
         transactionActive = true;
+        transactionFailed = false;
         return true;
     }
     public void endTransaction(){
@@ -125,10 +132,13 @@ public class DistributedClientService implements ClientService{
     }
 
     private void transactionFail(String failReason){
-        System.err.println("Transaction failed: " + tid);
-        System.err.println(failReason);
-        rollback();
-        endTransaction();
+        if(!transactionFailed) {
+            transactionFailed = true;
+            System.err.println("Transaction failed: " + tid);
+            System.err.println(failReason);
+            rollback();
+            endTransaction();
+        }
     }
 
     private String getDBID(){
@@ -191,7 +201,8 @@ public class DistributedClientService implements ClientService{
     }
 
 
-    public Thread buyThread(ArrayList<String> productsToBuy, ArrayList<Integer> amountToBuy, int timeToProcess){
+    // TODO: 10/03/2023 add transaction timeout to improve throughput
+    public Thread buyThread(ArrayList<String> productsToBuy, ArrayList<Integer> amountToBuy, int timeToProcess, int attempts, int lockTimeout){
         System.out.println("Buy single transaction:");
         System.out.println("ClientId: " + clientId + " products to buy: " + productsToBuy + " amount to buy: " + amountToBuy);
         Thread thread = new Thread(() -> {
@@ -206,7 +217,9 @@ public class DistributedClientService implements ClientService{
                     storeRequest.setCustomerId(clientId.toString());
                     storeRequest.setAmount(amountToBuy.get(i));
                     storeRequest.setTimeToProcess(timeToProcess);
-                    buyFromStore(storeRequest);
+                    if(!buyFromStore(storeRequest).blockingGet()){
+                        break;
+                    }
                 }
                 endTransaction();
             } catch (Exception e) {

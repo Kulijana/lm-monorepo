@@ -30,6 +30,9 @@ public class GranularityTree implements LockManager {
 
 //    dbids will be in form app/db/table/row
     public synchronized boolean lock(LockRequest lockRequest){
+        if(lockExists(lockRequest)){
+            return true;
+        }
         String dbid = lockRequest.getDbid();
         String[] levels = dbid.split("/");
         LockType type = lockRecursive(root, lockRequest, levels, 0);
@@ -70,7 +73,7 @@ public class GranularityTree implements LockManager {
         String childDbId = levels[levelIndex];
         GranularityNode child = node.branches.get(childDbId);
         if (child == null) {
-            child = new GranularityNode(node);
+            child = new GranularityNode(node, childDbId);
             node.branches.put(childDbId, child);
         }
 
@@ -82,7 +85,22 @@ public class GranularityTree implements LockManager {
         return newLock;
     }
 
-    public boolean unlock(LockRequest request){
+    private boolean lockExists(LockRequest lockRequest){
+        String tid = lockRequest.getTid();
+        if(tid2LeafNodes.containsKey(tid)){
+            var leafs = tid2LeafNodes.get(tid);
+            for(var leaf: leafs){
+                boolean condition1 = leaf.DBID.equals(lockRequest.getDbid());
+                boolean condition2 = leaf.tid2LockType.get(lockRequest.getTid())== lockRequest.getType();
+                if(leaf.DBID.equals(lockRequest.getDbid()) &&
+                        leaf.tid2LockType.get(lockRequest.getTid())== lockRequest.getType())
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public synchronized boolean unlock(LockRequest request){
         String tid = request.getTid();
         var leafs = tid2LeafNodes.get(tid);
         if(leafs==null){
@@ -106,10 +124,20 @@ public class GranularityTree implements LockManager {
         //    string is identifier of the next level
         HashMap<String, GranularityNode> branches;
 
+        String DBID;
+
         public GranularityNode(GranularityNode parent){
+            this.parent = parent;
+            this.DBID = "";
+            branches = new HashMap<>();
+            tid2LockType = new HashMap<>();
+        }
+
+        public GranularityNode(GranularityNode parent, String childDbId){
             this.parent = parent;
             branches = new HashMap<>();
             tid2LockType = new HashMap<>();
+            this.DBID = this.parent.DBID.equals("") ? childDbId : this.parent.DBID + "/" + childDbId;
         }
 
         public LockType newLockResult(LockType type){
@@ -135,7 +163,7 @@ public class GranularityTree implements LockManager {
 
 
 //        finds the new strongest lock once the given transaction releases its lock
-        public void removeLock(String tid){
+        public synchronized void removeLock(String tid){
             tid2LockType.remove(tid);
             var newLock = tid2LockType.values().stream().max(new GranularityNode.LockTypeComparator());
             if(newLock.isPresent()){
