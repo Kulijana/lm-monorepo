@@ -1,7 +1,7 @@
 package com.master.lockerroom;
 
-import common.dto.LockRequest;
-import common.dto.LockType;
+import common.dto.lockmanager.LockRequest;
+import common.LockType;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -1,9 +1,8 @@
 package common.function;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.dto.LockRequest;
-import common.dto.LockResponse;
-import common.dto.LockType;
+import common.dto.lockmanager.LockRequest;
+import common.dto.lockmanager.LockResponse;
 import io.reactivex.rxjava3.core.Maybe;
 import org.json.JSONObject;
 

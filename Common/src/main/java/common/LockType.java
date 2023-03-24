@@ -1,6 +1,4 @@
-package common.dto;
-
-import java.util.Comparator;
+package common;
 
 public enum LockType{
     EXCLUSIVE, SHARED, INTENT_EXCLUSIVE, INTENT_SHARED, UNLOCK, INVALID;

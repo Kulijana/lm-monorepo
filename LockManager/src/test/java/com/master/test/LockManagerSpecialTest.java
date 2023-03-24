@@ -1,8 +1,8 @@
 package com.master.test;
 
 import com.master.controller.LockController;
-import common.dto.LockRequest;
-import common.dto.LockType;
+import common.dto.lockmanager.LockRequest;
+import common.LockType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

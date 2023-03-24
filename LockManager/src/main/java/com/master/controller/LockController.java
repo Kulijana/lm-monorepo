@@ -3,9 +3,8 @@ package com.master.controller;
 
 import com.master.lockerroom.GranularityTree;
 import com.master.lockerroom.LockManager;
-import com.master.lockerroom.LockerRoom;
-import common.dto.LockRequest;
-import common.dto.LockResponse;
+import common.dto.lockmanager.LockRequest;
+import common.dto.lockmanager.LockResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

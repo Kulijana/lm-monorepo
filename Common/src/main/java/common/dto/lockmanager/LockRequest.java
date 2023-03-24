@@ -1,5 +1,6 @@
-package common.dto;
+package common.dto.lockmanager;
 
+import common.LockType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

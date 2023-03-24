@@ -2,8 +2,8 @@ package com.master.controller;
 
 import com.master.model.Product;
 import com.master.repository.StoreRepository;
-import common.dto.LockRequest;
-import common.dto.LockType;
+import common.dto.lockmanager.LockRequest;
+import common.LockType;
 import common.dto.store.StoreRequest;
 import common.dto.store.StoreResponse;
 import common.function.LockMessenger;
@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 

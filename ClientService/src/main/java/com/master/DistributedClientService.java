@@ -2,8 +2,8 @@ package com.master;
 
 import com.master.model.Customer;
 import com.master.repository.CustomerRepository;
-import common.dto.LockRequest;
-import common.dto.LockType;
+import common.dto.lockmanager.LockRequest;
+import common.LockType;
 
 import common.dto.store.StoreRequest;
 import common.function.LockMessenger;

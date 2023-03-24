@@ -1,6 +1,6 @@
 package com.master.lockerroom;
 
-import common.dto.LockType;
+import common.LockType;
 
 import java.util.ArrayList;
 
