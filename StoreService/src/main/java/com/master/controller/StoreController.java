@@ -2,6 +2,7 @@ package com.master.controller;
 
 import com.master.model.Product;
 import com.master.repository.StoreRepository;
+import common.dto.lockmanager.ConfigRequest;
 import common.dto.lockmanager.LockRequest;
 import common.LockType;
 import common.dto.store.StoreRequest;
@@ -25,11 +26,15 @@ public class StoreController {
 
     private LockMessenger messenger = new LockMessenger();
 
+    private int timeout = 0;
+    private int attempts = 1;
+
     @PostMapping(path = "/buy", consumes = MediaType.ALL_VALUE)
     public StoreResponse buy(@RequestBody StoreRequest request){
         try {
+            System.out.println("Buy request");
             LockRequest lockRequest = new LockRequest(request.getTid(), getStorageDBID(request.getProductId()), LockType.EXCLUSIVE);
-            if(messenger.multipleAttemptLock(lockRequest, 3, 2000).blockingGet(false)){
+            if(messenger.multipleAttemptLock(lockRequest).blockingGet(false)){
                 Thread.sleep(request.getTimeToProcess());
 //                this should be fine, no need to check that storage is sufficient
 //                if lm works correctly
@@ -49,8 +54,9 @@ public class StoreController {
     @PostMapping(path = "/status", consumes = MediaType.ALL_VALUE)
     public StoreResponse status(@RequestBody StoreRequest request){
         try {
-            LockRequest lockRequest = new LockRequest(request.getTid(), storeDBID, LockType.SHARED);
-            if(messenger.multipleAttemptLock(lockRequest, 3, 1000).blockingGet(false)){
+            System.out.println("Status request");
+            LockRequest lockRequest = new LockRequest(request.getTid(), getStorageDBID(request.getProductId()), LockType.SHARED);
+            if(messenger.multipleAttemptLock(lockRequest).blockingGet(false)){
 //                TODO throw this out
                 Thread.sleep(request.getTimeToProcess());
                 var product = storeRepository.findById(Long.parseLong(request.getProductId())).get();
@@ -88,6 +94,11 @@ public class StoreController {
         return new StoreResponse(true, 0);
     }
 
+    @GetMapping(path="/config", consumes = MediaType.ALL_VALUE)
+    public void getAttempts(@RequestBody ConfigRequest request) {
+        this.attempts = request.getAttempts();
+        this.timeout = request.getTimeout();
+    }
 
     private String getStorageDBID(String productId){
         return storeDBID + productId;

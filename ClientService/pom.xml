@@ -83,7 +83,7 @@
                         </goals>
                         <configuration>
                             <mainClass>
-                                com.master.DistributedClientService
+                                com.master.service.DistributedClientService
                             </mainClass>
                         </configuration>
                     </execution>

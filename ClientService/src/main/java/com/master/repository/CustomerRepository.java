@@ -1,5 +1,6 @@
 package com.master.repository;
 
+import com.master.model.CentCustomer;
 import com.master.model.Customer;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

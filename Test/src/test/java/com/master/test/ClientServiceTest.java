@@ -2,13 +2,6 @@ package com.master.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.master.LockManagerApplication;
-import com.master.StoreServiceApplication;
-import org.junit.jupiter.api.Test;
-import com.master.DistributedClientService;
-
-import java.io.IOException;
-
 public class ClientServiceTest {
 
 //    @Test

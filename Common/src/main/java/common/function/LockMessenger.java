@@ -23,13 +23,28 @@ public class LockMessenger {
     private final String url_lock = "http://localhost:" + "9001" + "/locks";
     private final String url_unlock = "http://localhost:" + "9001" + "/unlocks";
 
+    private int attempts;
+
+    private int timeout;
+
+
     private ObjectMapper mapper;
 
     public LockMessenger(){
         mapper = new ObjectMapper();
+        timeout = 0;
+        attempts = 1;
     }
 
-    public Maybe<Boolean> multipleAttemptLock(LockRequest request, int attempts, int timeout){
+    public LockMessenger(int attempts, int timeout){
+        mapper = new ObjectMapper();
+        this.attempts = attempts;
+        this.timeout = timeout;
+    }
+
+
+
+    public Maybe<Boolean> multipleAttemptLock(LockRequest request){
         try {
             boolean acquiredLock = requestLock(request);
             while (attempts > 0 && !acquiredLock) {
@@ -46,7 +61,7 @@ public class LockMessenger {
     public boolean requestLock(LockRequest request) throws IOException, InterruptedException {
 
         JSONObject obj = new JSONObject(request);
-        System.out.println("Request to LM: " + obj);
+//        System.out.println("Request to LM: " + obj);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
