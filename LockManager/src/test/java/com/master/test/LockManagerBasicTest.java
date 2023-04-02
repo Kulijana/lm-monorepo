@@ -63,7 +63,7 @@ public class LockManagerBasicTest {
         assertTrue(lockController.lock(request).allowed);
         assertFalse(lockController.lock(request2).allowed);
         assertTrue(lockController.unlock(unlockRequest).allowed);
-        assertTrue(lockController.unlock(unlockRequest2).allowed);
+        assertFalse(lockController.unlock(unlockRequest2).allowed);
     }
 
     @Test

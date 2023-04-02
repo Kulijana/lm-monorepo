@@ -1,6 +1,6 @@
 com\master\controller\LockController.class
-com\master\lockerroom\Lock.class
-com\master\lockerroom\LockerRoom.class
-com\master\lockerroom\ReadLock.class
+com\master\lockerroom\GranularityTree.class
+com\master\lockerroom\LockManager.class
+com\master\lockerroom\GranularityTree$GranularityNode$LockTypeComparator.class
 com\master\LockManagerApplication.class
-com\master\lockerroom\WriteLock.class
+com\master\lockerroom\GranularityTree$GranularityNode.class

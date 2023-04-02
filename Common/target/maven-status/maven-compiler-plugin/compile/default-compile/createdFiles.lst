@@ -1,7 +1,10 @@
-common\dto\LockResponse.class
+common\dto\lockmanager\ConfigRequest.class
 common\function\StoreMessenger.class
-common\dto\LockType.class
 common\dto\store\StoreRequest.class
 common\dto\store\StoreResponse.class
-common\dto\LockRequest.class
+common\dto\lockmanager\LockResponse.class
+common\LockType.class
+common\dto\cent\CentStoreResponse.class
+common\dto\cent\CentStoreRequest.class
+common\dto\lockmanager\LockRequest.class
 common\function\LockMessenger.class

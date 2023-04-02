@@ -34,24 +34,44 @@ public class ClientServiceApplication
     @Override
     public void run(String... args) throws InterruptedException {
 //        LOG.info("EXECUTING : command line runner");
-//        distributedScenario();
 
-        var start = System.currentTimeMillis();
-//        centralizedScenario();
-        distributedScenario();
-        var end = System.currentTimeMillis();
-        System.out.println("Time taken in milliseconds: " + (end - start));
+        int serviceCount = 5;
+        int productCount = 100;
+        int productsToBuyCount = 5;
+        int productAmount = 200;
+        int customerBalance = 5000;
+        if(args.length > 0){
+            serviceCount = Integer.parseInt(args[0]);
+            productCount = Integer.parseInt(args[1]);
+            productsToBuyCount = Integer.parseInt(args[2]);
+        }
+        if(args.length > 3){
+            productAmount = Integer.parseInt(args[3]);
+            customerBalance = Integer.parseInt(args[4]);
+        }
+
+        ScenarioResult r = distributedScenario(serviceCount, productCount, productsToBuyCount, productAmount, customerBalance);
+        r.print();
+
+
     }
 
 
 
-    private void distributedScenario(){
-        int serviceCount= 20;
-        int customerBalance = 1000;
+    private ScenarioResult distributedScenario(int serviceCount,
+                                               int productCount,
+                                               int productsToBuyCount,
+                                               int productAmount,
+                                               int customerBalance){
 
-        int productCount = 500;
-        int productsToBuyCount = 20;
-        int productAmount = 200;
+        ScenarioResult result = new ScenarioResult();
+        result.serviceCount = serviceCount;
+        result.productsCount = productCount;
+        result.productsToBuyCount = productsToBuyCount;
+        double loadFactor = loadFactor(serviceCount, productCount, productsToBuyCount);
+        result.loadFactor = loadFactor;
+        result.load = loadFactor*serviceCount;
+
 
         int lm_attempts = 4;
         int lm_timeout = 1000;
@@ -73,8 +93,12 @@ public class ClientServiceApplication
 
             ArrayList<String> productsForService = new ArrayList<>();
             for (int j = 0; j < productsToBuyCount; j++) {
-                int index = r.nextInt(productCount);
-                productsForService.add(String.valueOf(index + 1));
+                String index;
+                do {
+                    index = String.valueOf(r.nextInt(productCount)+1);
+                }
+                while(productsForService.contains(index));
+                productsForService.add(index);
             }
             productsToBuy.add(productsForService);
         }
@@ -83,9 +107,10 @@ public class ClientServiceApplication
             var service = new DistributedClientService(customerRepository, i, lm_attempts, lm_timeout);
             services.add(service);
 //            var thread = service.buyThread(productsToBuy.get((int)(i-1)), 0, r.nextInt(store_attempts), r.nextInt(store_timeout));
-            var thread = service.buyThread(productsToBuy.get((int)(i-1)), 0,store_attempts, store_timeout);
+            var thread = service.buyThread(productsToBuy.get((int)(i-1)), 0,store_attempts, store_timeout, (int)result.load+1);
             threads.add(thread);
         }
+        long start = System.currentTimeMillis();
         threads.forEach(thread -> thread.start());
         threads.forEach(thread -> {
             try {
@@ -94,14 +119,14 @@ public class ClientServiceApplication
                 throw new RuntimeException(e);
             }
         });
+        long end = System.currentTimeMillis();
+        result.time = end - start;
+        return result;
     }
 
-    private void centralizedScenario(){
-        int serviceCount= 40;
-        int customerBalance = 1000;
+    private void centralizedScenario(int serviceCount, int productCount, int productsToBuyCount){
 
-        int productCount = 1000;
-        int productsToBuyCount = 20;
+        int customerBalance = 1000;
         int productAmount = 1000;
 
         buildScenario(serviceCount, customerBalance);
@@ -142,7 +167,35 @@ public class ClientServiceApplication
 
 
 
+    private double loadFactor(int a, int t, int i){
+        double k = ((double)i)/t;
+        double p0 = Math.pow(1-k,a);
+        double p1 = a*k*Math.pow(1-k, a-1);
+//        probability that an item is bad is p
+        double p = 1 - p0 - p1;
 
+        return 1 - Math.pow(1 - p, i);
+    }
+
+    private class ScenarioResult{
+        int serviceCount;
+        int productsCount;
+        int productsToBuyCount;
+        double loadFactor;
+        double load;
+        long time;
+
+        void print(){
+            System.out.println("A | T | I | LF | L | time");
+            System.out.println(serviceCount + " | " + productsCount + " | " + productsToBuyCount + " | " + loadFactor + " | " + load + " | " + time);
+        }
+    }
+
+
+    private int fact(int k){
+        if(k==0) return 1;
+        return k*fact(k-1);
+    }
 
 
 

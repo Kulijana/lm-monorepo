@@ -12,6 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Random;
 
 public class LockMessenger {
 
@@ -47,9 +48,12 @@ public class LockMessenger {
     public Maybe<Boolean> multipleAttemptLock(LockRequest request){
         try {
             boolean acquiredLock = requestLock(request);
-            while (attempts > 0 && !acquiredLock) {
-                attempts--;
-                Thread.sleep(timeout);
+            Random r = new Random();
+            int personalAttempts = attempts;
+            int personalTimeout = timeout;
+            while (personalAttempts > 0 && !acquiredLock) {
+                personalAttempts--;
+                Thread.sleep(personalTimeout);
                 acquiredLock = requestLock(request);
             }
             return Maybe.just(acquiredLock);

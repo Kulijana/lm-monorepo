@@ -1,6 +1,5 @@
 package com.master.service;
 
-import com.master.model.CentCustomer;
 import com.master.model.Customer;
 import com.master.repository.CustomerRepository;
 import common.dto.lockmanager.ConfigRequest;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -37,6 +37,8 @@ public class DistributedClientService implements ClientService {
 
     private ArrayList<StoreRequest> logs;
 
+    private boolean outOfBalance;
+
 
 
     @Autowired
@@ -54,7 +56,16 @@ public class DistributedClientService implements ClientService {
     }
 
     public Maybe<Integer> getProductStorage(StoreRequest request){
-        return storeMessenger.requestStatus(request);
+        var response = storeMessenger.requestStatus(request);
+        if(response.isEmpty().blockingGet()){
+            transactionFail("Store refused storage request");
+            return Maybe.empty();
+        }
+        if(response.blockingGet() <= 0){
+            transactionFail("No items in storage");
+            return response;
+        }
+        return response;
     }
 
     public Maybe<Integer> getBalance(){
@@ -85,10 +96,15 @@ public class DistributedClientService implements ClientService {
 //            locking our resources preemptively
             LockRequest request = new LockRequest(tid, getDBID(), LockType.EXCLUSIVE);
             if (lockMessenger.multipleAttemptLock(request).blockingGet(false)) {
+                var customer = customerRepository.findById(clientId).get();
+                if(customer.getBalance() == 0){
+                    transactionFail("Insufficient balance");
+                    outOfBalance = true;
+                    return Maybe.just(false);
+                }
                 storeRequest.setTid(this.tid);
                 var storeResponse =  storeMessenger.requestBuy(storeRequest).blockingGet();
                 if(storeResponse){
-                    var customer = customerRepository.findById(clientId).get();
                     customer.setBalance(customer.getBalance() - storeRequest.getAmount());
                     customer.setInventory(customer.getInventory() + storeRequest.getAmount());
                     customerRepository.save(customer);
@@ -162,18 +178,34 @@ public class DistributedClientService implements ClientService {
     static int transactionsSucceded = 0;
 
     // TODO: 10/03/2023 add transaction timeout to improve throughput
-    public Thread buyThread(ArrayList<String> productsToBuy, int timeToProcess, int store_attempts, int store_timeout){
+    public Thread buyThread(ArrayList<String> productsToBuy, int timeToProcess, int store_attempts, int store_timeout, int load){
         storeMessenger.config(new ConfigRequest(store_attempts, store_timeout));
         System.out.println("Buy single transaction:");
         System.out.println("ClientId: " + clientId + " products to buy: " + productsToBuy);
+        outOfBalance = false;
         Thread thread = new Thread(() -> {
             try {
+                boolean outOfItems = false;
                 do {
                     transactionFailed = false;
                     startTransaction();
-                    System.out.println("tranasction starting: " + this.tid);
+
+
+                    System.out.println("transaction starting: " + this.tid);
 
                     for (int i = 0; i < productsToBuy.size(); i++) {
+                        StoreRequest storageRequest = new StoreRequest();
+                        storageRequest.setTid(tid);
+                        storageRequest.setProductId(productsToBuy.get(i));
+                        storageRequest.setCustomerId(clientId.toString());
+                        var storage = getProductStorage(storageRequest);
+                        if(storage.isEmpty().blockingGet()){
+                            break;
+                        }
+                        if(storage.blockingGet() == 0){
+                            outOfItems = true;
+                            break;
+                        }
                         StoreRequest storeRequest = new StoreRequest();
                         storeRequest.setTid(tid);
                         storeRequest.setProductId(productsToBuy.get(i));
@@ -185,13 +217,18 @@ public class DistributedClientService implements ClientService {
                         }
                     }
                     if(!transactionFailed){
-                        System.out.println("Transaction succeded: " + this.tid);
+                        System.out.println("Transaction succeeded: " + this.tid);
                         transactionsSucceded++;
-                        System.out.println("Tranasctions finished: " + transactionsSucceded);
+                        System.out.println("Transactions finished: " + transactionsSucceded);
                     }else{
-                        Thread.sleep(5000);
+                        Random r = new Random();
+                        int sleepTimer = r.nextInt(5000, 8000);
+                        if(load > 10){
+                            sleepTimer = r.nextInt(3000, 6000)* load;
+                        }
+                        Thread.sleep(sleepTimer);
                     }
-                }while(transactionFailed);
+                }while(!outOfItems && !outOfBalance && transactionFailed);
                 endTransaction();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -223,7 +260,7 @@ public class DistributedClientService implements ClientService {
                         }
                     }
                     if(!transactionFailed){
-                        System.out.println("Transaction succeded: " + this.tid);
+                        System.out.println("Transaction succeeded: " + this.tid);
                     }else{
                         Thread.sleep(10000);
                     }

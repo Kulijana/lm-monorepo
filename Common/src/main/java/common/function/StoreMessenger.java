@@ -87,7 +87,10 @@ public class StoreMessenger {
         try {
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             StoreResponse storeResponse = mapper.readValue(response.body(), StoreResponse.class);
-            return Maybe.just(storeResponse.getAmount());
+            if(storeResponse.isAllowed()) {
+                return Maybe.just(storeResponse.getAmount());
+            }
+            return Maybe.empty();
         }catch (Exception ex){
             ex.printStackTrace();
             return Maybe.error(ex);
@@ -100,7 +103,7 @@ public class StoreMessenger {
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(obj.toString()))
-                .uri(URI.create(url_status))
+                .uri(URI.create(url_config))
                 .header("Content-Type", "application/json")
                 .header("dapr-app-id", "store-service")
                 .build();
