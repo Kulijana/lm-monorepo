@@ -58,8 +58,6 @@ public class StoreController {
             LockRequest lockRequest = new LockRequest(request.getTid(), getStorageDBID(request.getProductId()), LockType.SHARED);
             var response = messenger.multipleAttemptLock(lockRequest).blockingGet();
             if(response){
-//                TODO throw this out
-                Thread.sleep(request.getTimeToProcess());
                 var product = storeRepository.findById(Long.parseLong(request.getProductId())).get();
                 return new StoreResponse(true, product.getAmount());
             }else{

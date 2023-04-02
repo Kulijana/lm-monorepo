@@ -22,8 +22,6 @@ import java.util.UUID;
 @Service
 public class DistributedClientService implements ClientService {
 
-    // TODO: 09/03/2023 add creation of new client?
-
     CustomerRepository customerRepository;
 
     private LockMessenger lockMessenger;
@@ -177,7 +175,6 @@ public class DistributedClientService implements ClientService {
 
     static int transactionsSucceded = 0;
 
-    // TODO: 10/03/2023 add transaction timeout to improve throughput
     public Thread buyThread(ArrayList<String> productsToBuy, int timeToProcess, int store_attempts, int store_timeout, int load){
         storeMessenger.config(new ConfigRequest(store_attempts, store_timeout));
         System.out.println("Buy single transaction:");
@@ -274,9 +271,4 @@ public class DistributedClientService implements ClientService {
         });
         return thread;
     }
-
-
-
-//    TODO allow a transaction to change the read lock to a write lock!
-//    TODO add rollback to stuff
 }
